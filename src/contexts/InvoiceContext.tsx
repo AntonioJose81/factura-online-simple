@@ -1,6 +1,8 @@
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { Company, Customer, Invoice } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
+import { exportToJson, exportToXml } from '@/utils/exporters';
 
 type InvoiceContextType = {
   companies: Company[];
@@ -15,6 +17,11 @@ type InvoiceContextType = {
   addInvoice: (invoice: Omit<Invoice, 'id'>) => void;
   updateInvoice: (invoice: Invoice) => void;
   getInvoice: (id: string) => Invoice | undefined;
+  getCompany: (id: string) => Company | undefined;
+  getCustomer: (id: string) => Customer | undefined;
+  deleteInvoice: (id: string) => void;
+  exportData: () => string;
+  importData: (jsonData: string) => boolean;
 };
 
 const InvoiceContext = createContext<InvoiceContextType | undefined>(undefined);
@@ -137,6 +144,57 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
     return invoices.find(invoice => invoice.id === id);
   };
 
+  // Añadir los nuevos métodos necesarios
+  const getCompany = (id: string): Company | undefined => {
+    return companies.find(company => company.id === id);
+  };
+
+  const getCustomer = (id: string): Customer | undefined => {
+    return customers.find(customer => customer.id === id);
+  };
+
+  const deleteInvoice = (id: string): void => {
+    const updatedInvoices = invoices.filter(invoice => invoice.id !== id);
+    setInvoices(updatedInvoices);
+    localStorage.setItem('invoices', JSON.stringify(updatedInvoices));
+  };
+
+  // Funciones para exportación e importación de datos
+  const exportData = (): string => {
+    const data = {
+      companies,
+      customers,
+      invoices
+    };
+    return JSON.stringify(data, null, 2);
+  };
+
+  const importData = (jsonData: string): boolean => {
+    try {
+      const data = JSON.parse(jsonData);
+      
+      // Verificar que el JSON tenga la estructura esperada
+      if (!data.companies || !data.customers || !data.invoices) {
+        return false;
+      }
+      
+      // Importar los datos
+      setCompanies(data.companies);
+      localStorage.setItem('companies', JSON.stringify(data.companies));
+      
+      setCustomers(data.customers);
+      localStorage.setItem('customers', JSON.stringify(data.customers));
+      
+      setInvoices(data.invoices);
+      localStorage.setItem('invoices', JSON.stringify(data.invoices));
+      
+      return true;
+    } catch (error) {
+      console.error("Error al importar datos:", error);
+      return false;
+    }
+  };
+
   const value = {
     companies,
     customers,
@@ -149,7 +207,12 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
     deleteCustomer,
     addInvoice,
     updateInvoice,
-    getInvoice
+    getInvoice,
+    getCompany,
+    getCustomer,
+    deleteInvoice,
+    exportData,
+    importData
   };
 
   return (
