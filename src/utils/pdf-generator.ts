@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import { InvoiceWithDetails, InvoiceItem } from '@/types';
 import { formatCurrency } from './calculators';
@@ -15,7 +14,22 @@ export async function generateInvoicePDF(invoice: InvoiceWithDetails): Promise<B
   if (invoice.company.logo) {
     try {
       const img = await loadImage(invoice.company.logo);
-      doc.addImage(img, 'JPEG', 15, 15, 50, 25);
+      
+      // Calculate dimensions to maintain aspect ratio
+      const maxWidth = 50;
+      const maxHeight = 25;
+      
+      // Calculate dimensions while maintaining aspect ratio
+      let width = maxWidth;
+      let height = (img.height * maxWidth) / img.width;
+      
+      // If calculated height exceeds maxHeight, recalculate based on height
+      if (height > maxHeight) {
+        height = maxHeight;
+        width = (img.width * maxHeight) / img.height;
+      }
+      
+      doc.addImage(img, 'JPEG', 15, 15, width, height);
     } catch (error) {
       console.error('Error loading logo:', error);
     }

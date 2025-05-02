@@ -1,184 +1,168 @@
+import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import { Company, Customer, Invoice } from '@/types';
+import { v4 as uuidv4 } from 'uuid';
 
-import { createContext, useContext, useState, useEffect } from "react";
-import { v4 as uuidv4 } from "uuid";
-import { Company, Customer, Invoice, InvoiceItem } from "@/types";
-import { toast } from "@/hooks/use-toast";
-
-interface InvoiceContextType {
+type InvoiceContextType = {
   companies: Company[];
-  invoices: Invoice[];
   customers: Customer[];
-  getCompany: (id: string) => Company | undefined;
-  getCustomer: (id: string) => Customer | undefined;
-  getInvoice: (id: string) => Invoice | undefined;
-  addCompany: (company: Omit<Company, "id">) => Company;
+  invoices: Invoice[];
+  addCompany: (company: Omit<Company, 'id'>) => Company;
   updateCompany: (company: Company) => void;
   deleteCompany: (id: string) => void;
-  addCustomer: (customer: Omit<Customer, "id">) => Customer;
-  updateCustomer: (customer: Customer) => void;
+  addCustomer: (customer: Omit<Customer, 'id'>) => Customer;
+  updateCustomer: (customer: Customer) => Customer;
   deleteCustomer: (id: string) => void;
-  addInvoice: (invoice: Omit<Invoice, "id">) => Invoice;
+  addInvoice: (invoice: Omit<Invoice, 'id'>) => void;
   updateInvoice: (invoice: Invoice) => void;
-  deleteInvoice: (id: string) => void;
-  exportData: () => string;
-  importData: (jsonData: string) => boolean;
-}
+  getInvoice: (id: string) => Invoice | undefined;
+};
 
 const InvoiceContext = createContext<InvoiceContextType | undefined>(undefined);
 
-export function InvoiceProvider({ children }: { children: React.ReactNode }) {
+export function InvoiceProvider({ children }: { children: ReactNode }) {
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
 
-  // Load data from localStorage on component mount
   useEffect(() => {
-    const savedCompanies = localStorage.getItem("companies");
-    const savedInvoices = localStorage.getItem("invoices");
-    const savedCustomers = localStorage.getItem("customers");
+    const loadInitialData = () => {
+      const storedCompanies = localStorage.getItem('companies');
+      if (storedCompanies) {
+        setCompanies(JSON.parse(storedCompanies));
+      }
 
-    if (savedCompanies) setCompanies(JSON.parse(savedCompanies));
-    if (savedInvoices) setInvoices(JSON.parse(savedInvoices));
-    if (savedCustomers) setCustomers(JSON.parse(savedCustomers));
+      const storedCustomers = localStorage.getItem('customers');
+      if (storedCustomers) {
+        setCustomers(JSON.parse(storedCustomers));
+      }
+
+      const storedInvoices = localStorage.getItem('invoices');
+      if (storedInvoices) {
+        setInvoices(JSON.parse(storedInvoices));
+      }
+    };
+
+    loadInitialData();
   }, []);
 
-  // Save data to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem("companies", JSON.stringify(companies));
-  }, [companies]);
+  const addCompany = (company: Omit<Company, 'id'>): Company => {
+    const newCompany = {
+      ...company,
+      id: uuidv4()
+    };
 
-  useEffect(() => {
-    localStorage.setItem("invoices", JSON.stringify(invoices));
-  }, [invoices]);
+    const updatedCompanies = [...companies, newCompany];
+    setCompanies(updatedCompanies);
+    localStorage.setItem('companies', JSON.stringify(updatedCompanies));
 
-  useEffect(() => {
-    localStorage.setItem("customers", JSON.stringify(customers));
-  }, [customers]);
-
-  const getCompany = (id: string) => companies.find(c => c.id === id);
-  const getCustomer = (id: string) => customers.find(c => c.id === id);
-  const getInvoice = (id: string) => invoices.find(i => i.id === id);
-
-  const addCompany = (company: Omit<Company, "id">) => {
-    const newCompany = { ...company, id: uuidv4() };
-    setCompanies([...companies, newCompany]);
     return newCompany;
   };
 
   const updateCompany = (company: Company) => {
-    setCompanies(companies.map(c => c.id === company.id ? company : c));
+    const updatedCompanies = companies.map(c =>
+      c.id === company.id ? company : c
+    );
+    setCompanies(updatedCompanies);
+    localStorage.setItem('companies', JSON.stringify(updatedCompanies));
   };
 
   const deleteCompany = (id: string) => {
-    // Check if any invoices are using this company
-    const usedInInvoice = invoices.some(i => i.companyId === id);
-    if (usedInInvoice) {
-      toast({
-        title: "No se puede eliminar la empresa",
-        description: "Esta empresa está siendo utilizada en facturas existentes",
-        variant: "destructive"
-      });
-      return;
+    // Check if the company is used in any invoice
+    const isCompanyUsed = invoices.some(invoice => invoice.companyId === id);
+    if (isCompanyUsed) {
+      throw new Error("No se puede eliminar una empresa que tiene facturas asociadas");
     }
-    setCompanies(companies.filter(c => c.id !== id));
+
+    // If not used, delete the company
+    const updatedCompanies = companies.filter(company => company.id !== id);
+    setCompanies(updatedCompanies);
+    localStorage.setItem('companies', JSON.stringify(updatedCompanies));
   };
 
-  const addCustomer = (customer: Omit<Customer, "id">) => {
-    const newCustomer = { ...customer, id: uuidv4() };
-    setCustomers([...customers, newCustomer]);
+  const addCustomer = (customer: Omit<Customer, 'id'>): Customer => {
+    const newCustomer = {
+      ...customer,
+      id: uuidv4()
+    };
+    
+    const updatedCustomers = [...customers, newCustomer];
+    setCustomers(updatedCustomers);
+    localStorage.setItem('customers', JSON.stringify(updatedCustomers));
+    
     return newCustomer;
   };
-
-  const updateCustomer = (customer: Customer) => {
-    setCustomers(customers.map(c => c.id === customer.id ? customer : c));
+  
+  const updateCustomer = (customer: Customer): Customer => {
+    const updatedCustomers = customers.map(c => 
+      c.id === customer.id ? customer : c
+    );
+    setCustomers(updatedCustomers);
+    localStorage.setItem('customers', JSON.stringify(updatedCustomers));
+    return customer;
   };
-
-  const deleteCustomer = (id: string) => {
-    // Check if any invoices are using this customer
-    const usedInInvoice = invoices.some(i => i.customerId === id);
-    if (usedInInvoice) {
-      toast({
-        title: "No se puede eliminar el cliente",
-        description: "Este cliente está siendo utilizado en facturas existentes",
-        variant: "destructive"
-      });
-      return;
+  
+  const deleteCustomer = (id: string): void => {
+    // Check if the customer is used in any invoice
+    const isCustomerUsed = invoices.some(invoice => invoice.customerId === id);
+    if (isCustomerUsed) {
+      throw new Error("No se puede eliminar un cliente que tiene facturas asociadas");
     }
-    setCustomers(customers.filter(c => c.id !== id));
+    
+    // If not used, delete the customer
+    const updatedCustomers = customers.filter(customer => customer.id !== id);
+    setCustomers(updatedCustomers);
+    localStorage.setItem('customers', JSON.stringify(updatedCustomers));
   };
 
-  const addInvoice = (invoice: Omit<Invoice, "id">) => {
-    const newInvoice = { ...invoice, id: uuidv4() };
-    setInvoices([...invoices, newInvoice]);
-    return newInvoice;
+  const addInvoice = (invoice: Omit<Invoice, 'id'>) => {
+    const newInvoice = {
+      ...invoice,
+      id: uuidv4()
+    };
+
+    const updatedInvoices = [...invoices, newInvoice];
+    setInvoices(updatedInvoices);
+    localStorage.setItem('invoices', JSON.stringify(updatedInvoices));
   };
 
   const updateInvoice = (invoice: Invoice) => {
-    setInvoices(invoices.map(i => i.id === invoice.id ? invoice : i));
+    const updatedInvoices = invoices.map(i =>
+      i.id === invoice.id ? invoice : i
+    );
+    setInvoices(updatedInvoices);
+    localStorage.setItem('invoices', JSON.stringify(updatedInvoices));
   };
 
-  const deleteInvoice = (id: string) => {
-    setInvoices(invoices.filter(i => i.id !== id));
+  const getInvoice = (id: string): Invoice | undefined => {
+    return invoices.find(invoice => invoice.id === id);
   };
 
-  const exportData = () => {
-    return JSON.stringify({ companies, invoices, customers });
-  };
-
-  const importData = (jsonData: string) => {
-    try {
-      const data = JSON.parse(jsonData);
-      
-      if (data.companies && Array.isArray(data.companies)) {
-        setCompanies(data.companies);
-      }
-      
-      if (data.invoices && Array.isArray(data.invoices)) {
-        setInvoices(data.invoices);
-      }
-      
-      if (data.customers && Array.isArray(data.customers)) {
-        setCustomers(data.customers);
-      }
-      
-      return true;
-    } catch (error) {
-      console.error("Error importing data:", error);
-      return false;
-    }
+  const value = {
+    companies,
+    customers,
+    invoices,
+    addCompany,
+    updateCompany,
+    deleteCompany,
+    addCustomer,
+    updateCustomer,
+    deleteCustomer,
+    addInvoice,
+    updateInvoice,
+    getInvoice
   };
 
   return (
-    <InvoiceContext.Provider
-      value={{
-        companies,
-        invoices,
-        customers,
-        getCompany,
-        getCustomer,
-        getInvoice,
-        addCompany,
-        updateCompany,
-        deleteCompany,
-        addCustomer,
-        updateCustomer,
-        deleteCustomer,
-        addInvoice,
-        updateInvoice,
-        deleteInvoice,
-        exportData,
-        importData
-      }}
-    >
+    <InvoiceContext.Provider value={value}>
       {children}
     </InvoiceContext.Provider>
   );
 }
 
-export function useInvoiceContext() {
+export const useInvoiceContext = (): InvoiceContextType => {
   const context = useContext(InvoiceContext);
   if (context === undefined) {
-    throw new Error("useInvoiceContext must be used within an InvoiceProvider");
+    throw new Error('useInvoiceContext must be used within an InvoiceProvider');
   }
   return context;
-}
+};
