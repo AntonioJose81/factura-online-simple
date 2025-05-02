@@ -39,10 +39,23 @@ export function calculateInvoiceTax(items: InvoiceItem[]): number {
   }, 0);
 }
 
+export function calculateWithholdingTax(
+  subtotal: number,
+  applyWithholdingTax: boolean = false,
+  withholdingTaxRate: number = 0
+): number {
+  if (!applyWithholdingTax || withholdingTaxRate <= 0) {
+    return 0;
+  }
+  return subtotal * (withholdingTaxRate / 100);
+}
+
 export function calculateInvoiceTotal(
   items: InvoiceItem[], 
   globalDiscount: number = 0,
-  applyEquivalenceSurcharge: boolean = false
+  applyEquivalenceSurcharge: boolean = false,
+  applyWithholdingTax: boolean = false,
+  withholdingTaxRate: number = 0
 ): number {
   const subtotal = calculateInvoiceSubtotal(items);
   const totalDiscount = calculateInvoiceTotalDiscount(items, globalDiscount);
@@ -61,7 +74,14 @@ export function calculateInvoiceTotal(
     return sum + taxAmount + equivalenceSurcharge;
   }, 0);
   
-  return afterGlobalDiscount + totalTax;
+  // Calculate withholding tax
+  const withholdingTax = calculateWithholdingTax(
+    afterGlobalDiscount, 
+    applyWithholdingTax,
+    withholdingTaxRate
+  );
+  
+  return afterGlobalDiscount + totalTax - withholdingTax;
 }
 
 export function enrichInvoiceWithDetails(
@@ -72,10 +92,19 @@ export function enrichInvoiceWithDetails(
   const totalBeforeTax = calculateInvoiceSubtotal(invoice.items);
   const totalDiscount = calculateInvoiceTotalDiscount(invoice.items, invoice.globalDiscount || 0);
   const totalTax = calculateInvoiceTax(invoice.items);
+  
+  const totalWithholdingTax = calculateWithholdingTax(
+    totalBeforeTax - totalDiscount,
+    invoice.applyWithholdingTax || false,
+    invoice.withholdingTaxRate || 0
+  );
+  
   const total = calculateInvoiceTotal(
     invoice.items,
     invoice.globalDiscount || 0,
-    invoice.applyEquivalenceSurcharge || false
+    invoice.applyEquivalenceSurcharge || false,
+    invoice.applyWithholdingTax || false,
+    invoice.withholdingTaxRate || 0
   );
 
   return {
@@ -85,6 +114,7 @@ export function enrichInvoiceWithDetails(
     totalBeforeTax,
     totalTax,
     totalDiscount,
+    totalWithholdingTax,
     total
   };
 }

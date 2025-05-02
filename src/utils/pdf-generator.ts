@@ -171,6 +171,12 @@ export async function generateInvoicePDF(invoice: InvoiceWithDetails): Promise<B
     doc.text(formatCurrency(invoice.totalBeforeTax * 0.052), 175, summaryLineY, { align: 'right' });
   }
   
+  if (invoice.applyWithholdingTax && invoice.totalWithholdingTax && invoice.totalWithholdingTax > 0) {
+    summaryLineY += 7;
+    doc.text('Retención:', 125, summaryLineY);
+    doc.text(`- ${formatCurrency(invoice.totalWithholdingTax)}`, 175, summaryLineY, { align: 'right' });
+  }
+  
   // Draw a line before total
   summaryLineY += 3;
   doc.setDrawColor(150, 150, 150);

@@ -46,6 +46,8 @@ export interface Invoice {
   notes?: string;
   globalDiscount?: number;
   applyEquivalenceSurcharge?: boolean;
+  applyWithholdingTax?: boolean;
+  withholdingTaxRate?: number;
   status: 'draft' | 'sent' | 'paid' | 'cancelled';
 }
 
@@ -55,5 +57,6 @@ export interface InvoiceWithDetails extends Invoice {
   totalBeforeTax: number;
   totalTax: number;
   totalDiscount: number;
+  totalWithholdingTax?: number;
   total: number;
 }

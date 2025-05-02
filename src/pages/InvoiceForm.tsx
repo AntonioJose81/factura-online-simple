@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
@@ -14,7 +13,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { Company, Customer, Invoice, InvoiceItem } from "@/types";
-import { calculateInvoiceTotal, formatCurrency } from "@/utils/calculators";
+import { 
+  calculateInvoiceTotal, 
+  formatCurrency, 
+  calculateWithholdingTax 
+} from "@/utils/calculators";
 import { generateInvoicePDF } from "@/utils/pdf-generator";
 
 export default function InvoiceForm() {
@@ -43,6 +46,8 @@ export default function InvoiceForm() {
     notes: "",
     globalDiscount: 0,
     applyEquivalenceSurcharge: false,
+    applyWithholdingTax: false,
+    withholdingTaxRate: 15,
     status: "draft"
   });
 
@@ -289,10 +294,19 @@ export default function InvoiceForm() {
         totalBeforeTax: 0,
         totalTax: 0,
         totalDiscount: 0,
+        totalWithholdingTax: invoice.applyWithholdingTax ? 
+          calculateWithholdingTax(
+            calculateInvoiceSubtotal(invoice.items) - 
+            (calculateInvoiceSubtotal(invoice.items) * (invoice.globalDiscount || 0) / 100),
+            true,
+            invoice.withholdingTaxRate || 0
+          ) : 0,
         total: calculateInvoiceTotal(
           invoice.items, 
           invoice.globalDiscount || 0,
-          invoice.applyEquivalenceSurcharge || false
+          invoice.applyEquivalenceSurcharge || false,
+          invoice.applyWithholdingTax || false,
+          invoice.withholdingTaxRate || 0
         )
       };
       
@@ -347,10 +361,18 @@ export default function InvoiceForm() {
       }, 0)
     : 0;
   
+  const afterDiscount = subtotal - discountAmount;
+  
+  const withholdingTaxAmount = invoice.applyWithholdingTax && invoice.withholdingTaxRate 
+    ? afterDiscount * (invoice.withholdingTaxRate / 100)
+    : 0;
+  
   const total = calculateInvoiceTotal(
     invoice.items,
     invoice.globalDiscount || 0,
-    invoice.applyEquivalenceSurcharge || false
+    invoice.applyEquivalenceSurcharge || false,
+    invoice.applyWithholdingTax || false,
+    invoice.withholdingTaxRate || 0
   );
 
   return (
@@ -656,6 +678,38 @@ export default function InvoiceForm() {
                         </Label>
                       </div>
                     </div>
+                    
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="applyWithholdingTax"
+                          checked={invoice.applyWithholdingTax || false}
+                          onCheckedChange={(checked) =>
+                            setInvoice({ ...invoice, applyWithholdingTax: checked })
+                          }
+                        />
+                        <Label htmlFor="applyWithholdingTax">
+                          Aplicar Retención
+                        </Label>
+                      </div>
+                      
+                      {invoice.applyWithholdingTax && (
+                        <div className="space-y-2">
+                          <Label htmlFor="withholdingTaxRate">Porcentaje de Retención (%)</Label>
+                          <Input
+                            id="withholdingTaxRate"
+                            name="withholdingTaxRate"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={invoice.withholdingTaxRate || 15}
+                            onChange={handleInvoiceChange}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    
                     <div className="space-y-2">
                       <Label htmlFor="notes">Notas / Observaciones</Label>
                       <Textarea
@@ -862,155 +916,4 @@ export default function InvoiceForm() {
                         <p className="text-sm">Nº: <strong>{invoice.number || "[Pendiente]"}</strong></p>
                         <p className="text-sm">Fecha: <strong>{formatDate(invoice.date)}</strong></p>
                         {invoice.dueDate && (
-                          <p className="text-sm">Vencimiento: <strong>{formatDate(invoice.dueDate)}</strong></p>
-                        )}
-                      </div>
-                      
-                      <div className="text-right">
-                        {invoice.companyId && (
-                          <>
-                            {/* Company Details */}
-                            {(() => {
-                              const company = companies.find(c => c.id === invoice.companyId);
-                              if (!company) return null;
-                              
-                              return (
-                                <div>
-                                  <h3 className="font-bold text-lg">{company.name}</h3>
-                                  <p className="text-sm">{company.taxId}</p>
-                                  <p className="text-sm">{company.address}</p>
-                                  <p className="text-sm">{company.postalCode} {company.city}</p>
-                                  <p className="text-sm">{company.province}, {company.country}</p>
-                                  {company.phone && <p className="text-sm">Tel: {company.phone}</p>}
-                                  {company.email && <p className="text-sm">{company.email}</p>}
-                                </div>
-                              );
-                            })()}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="mt-8">
-                      <h3 className="text-gray-500 text-sm font-medium mb-2">CLIENTE:</h3>
-                      {invoice.customerId ? (
-                        (() => {
-                          const customer = customers.find(c => c.id === invoice.customerId);
-                          if (!customer) return <p className="text-red-500">Cliente no encontrado</p>;
-                          
-                          return (
-                            <div className="border-l-4 border-gray-200 pl-3">
-                              <p className="font-bold">{customer.name}</p>
-                              <p>{customer.taxId}</p>
-                              <p>{customer.address}</p>
-                              <p>{customer.postalCode} {customer.city}</p>
-                              <p>{customer.province}, {customer.country}</p>
-                              {customer.phone && <p>Tel: {customer.phone}</p>}
-                              {customer.email && <p>{customer.email}</p>}
-                            </div>
-                          );
-                        })()
-                      ) : (
-                        <p className="text-gray-500 italic">Cliente no seleccionado</p>
-                      )}
-                    </div>
-                    
-                    <div className="mt-10">
-                      <table className="w-full">
-                        <thead className="bg-gray-100">
-                          <tr className="text-left">
-                            <th className="p-2">Descripción</th>
-                            <th className="p-2 text-right">Cant.</th>
-                            <th className="p-2 text-right">Precio</th>
-                            <th className="p-2 text-right">Dto.</th>
-                            <th className="p-2 text-right">IVA</th>
-                            <th className="p-2 text-right">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {invoice.items.length === 0 ? (
-                            <tr>
-                              <td colSpan={6} className="text-center p-4 text-gray-500">
-                                No hay artículos en la factura
-                              </td>
-                            </tr>
-                          ) : (
-                            invoice.items.map((item, index) => {
-                              const subtotal = item.quantity * item.price;
-                              const discountAmount = subtotal * (item.discount / 100);
-                              const afterDiscount = subtotal - discountAmount;
-                              const taxAmount = afterDiscount * (item.tax / 100);
-                              const total = afterDiscount + taxAmount;
-                              
-                              return (
-                                <tr key={item.id} className={index % 2 === 0 ? 'bg-gray-50' : ''}>
-                                  <td className="p-2 border-t">{item.description}</td>
-                                  <td className="p-2 text-right border-t">{item.quantity}</td>
-                                  <td className="p-2 text-right border-t">{formatCurrency(item.price)}</td>
-                                  <td className="p-2 text-right border-t">{item.discount > 0 ? `${item.discount}%` : '-'}</td>
-                                  <td className="p-2 text-right border-t">{item.tax}%</td>
-                                  <td className="p-2 text-right border-t font-medium">{formatCurrency(total)}</td>
-                                </tr>
-                              );
-                            })
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                    
-                    <div className="mt-6 flex justify-end">
-                      <div className="w-64 space-y-2">
-                        <div className="flex justify-between">
-                          <span>Subtotal:</span>
-                          <span>{formatCurrency(subtotal)}</span>
-                        </div>
-                        
-                        {invoice.globalDiscount > 0 && (
-                          <div className="flex justify-between">
-                            <span>Descuento ({invoice.globalDiscount}%):</span>
-                            <span>-{formatCurrency(discountAmount)}</span>
-                          </div>
-                        )}
-                        
-                        <div className="flex justify-between">
-                          <span>IVA:</span>
-                          <span>{formatCurrency(taxAmount)}</span>
-                        </div>
-                        
-                        {invoice.applyEquivalenceSurcharge && (
-                          <div className="flex justify-between">
-                            <span>Recargo Equivalencia:</span>
-                            <span>{formatCurrency(equivalenceSurchargeAmount)}</span>
-                          </div>
-                        )}
-                        
-                        <div className="flex justify-between font-bold pt-2 border-t">
-                          <span>Total:</span>
-                          <span>{formatCurrency(total)}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {invoice.notes && (
-                      <div className="mt-10 pt-4 border-t">
-                        <h3 className="font-medium">Notas:</h3>
-                        <p className="whitespace-pre-line text-gray-600">{invoice.notes}</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Helper function to format dates
-function formatDate(dateString: string): string {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('es-ES');
-}
+                          <p className="text-sm">Vencimiento: <strong>{formatDate(invoice.dueDate)}</strong>
