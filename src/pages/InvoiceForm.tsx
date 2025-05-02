@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
@@ -16,9 +17,17 @@ import { Company, Customer, Invoice, InvoiceItem } from "@/types";
 import { 
   calculateInvoiceTotal, 
   formatCurrency, 
-  calculateWithholdingTax 
+  calculateWithholdingTax,
+  calculateInvoiceSubtotal 
 } from "@/utils/calculators";
 import { generateInvoicePDF } from "@/utils/pdf-generator";
+
+// Helper function to format date
+const formatDate = (dateString: string): string => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleDateString('es-ES');
+};
 
 export default function InvoiceForm() {
   const navigate = useNavigate();
@@ -916,4 +925,158 @@ export default function InvoiceForm() {
                         <p className="text-sm">Nº: <strong>{invoice.number || "[Pendiente]"}</strong></p>
                         <p className="text-sm">Fecha: <strong>{formatDate(invoice.date)}</strong></p>
                         {invoice.dueDate && (
-                          <p className="text-sm">Vencimiento: <strong>{formatDate(invoice.dueDate)}</strong>
+                          <p className="text-sm">Vencimiento: <strong>{formatDate(invoice.dueDate)}</strong></p>
+                        )}
+                      </div>
+                      
+                      {/* Placeholder for company logo */}
+                      <div className="w-32 h-16 bg-gray-100 flex items-center justify-center rounded">
+                        <span className="text-xs text-gray-400">Logo</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-8 mt-8">
+                      <div>
+                        <h3 className="text-gray-500 text-sm mb-2">DATOS EMISOR</h3>
+                        {invoice.companyId && companies.length > 0 && (
+                          <div className="text-sm space-y-1">
+                            {(() => {
+                              const company = companies.find(c => c.id === invoice.companyId);
+                              return company ? (
+                                <>
+                                  <p className="font-semibold">{company.name}</p>
+                                  <p>CIF/NIF: {company.taxId}</p>
+                                  <p>{company.address}</p>
+                                  <p>{company.postalCode} {company.city}</p>
+                                  <p>{company.province}, {company.country}</p>
+                                  {company.phone && <p>Tel: {company.phone}</p>}
+                                  {company.email && <p>Email: {company.email}</p>}
+                                </>
+                              ) : null;
+                            })()}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <h3 className="text-gray-500 text-sm mb-2">DATOS CLIENTE</h3>
+                        {invoice.customerId && customers.length > 0 && (
+                          <div className="text-sm space-y-1">
+                            {(() => {
+                              const customer = customers.find(c => c.id === invoice.customerId);
+                              return customer ? (
+                                <>
+                                  <p className="font-semibold">{customer.name}</p>
+                                  <p>CIF/NIF: {customer.taxId}</p>
+                                  <p>{customer.address}</p>
+                                  <p>{customer.postalCode} {customer.city}</p>
+                                  <p>{customer.province}, {customer.country}</p>
+                                  {customer.phone && <p>Tel: {customer.phone}</p>}
+                                  {customer.email && <p>Email: {customer.email}</p>}
+                                </>
+                              ) : null;
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-12">
+                      <h3 className="font-medium mb-2">CONCEPTOS</h3>
+                      <div className="border rounded-md overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="p-2 text-left">Descripción</th>
+                              <th className="p-2 text-right">Cant.</th>
+                              <th className="p-2 text-right">Precio</th>
+                              <th className="p-2 text-right">Dto.</th>
+                              <th className="p-2 text-right">Subtotal</th>
+                              <th className="p-2 text-right">IVA</th>
+                              <th className="p-2 text-right">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {invoice.items.map((item) => {
+                              const itemSubtotal = item.quantity * item.price;
+                              const itemDiscountAmount = itemSubtotal * (item.discount / 100);
+                              const itemAfterDiscount = itemSubtotal - itemDiscountAmount;
+                              const itemTaxAmount = itemAfterDiscount * (item.tax / 100);
+                              
+                              return (
+                                <tr key={item.id} className="border-t">
+                                  <td className="p-2">{item.description}</td>
+                                  <td className="p-2 text-right">{item.quantity}</td>
+                                  <td className="p-2 text-right">{formatCurrency(item.price)}</td>
+                                  <td className="p-2 text-right">{item.discount > 0 ? `${item.discount}%` : "-"}</td>
+                                  <td className="p-2 text-right">{formatCurrency(itemAfterDiscount)}</td>
+                                  <td className="p-2 text-right">{item.tax}%</td>
+                                  <td className="p-2 text-right font-medium">
+                                    {formatCurrency(itemAfterDiscount + itemTaxAmount)}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between mt-8">
+                      <div className="max-w-md">
+                        {invoice.notes && (
+                          <div>
+                            <h3 className="font-medium mb-1">OBSERVACIONES</h3>
+                            <p className="text-sm whitespace-pre-wrap border p-2 rounded-md">{invoice.notes}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="w-64 space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>Subtotal:</span>
+                          <span>{formatCurrency(subtotal)}</span>
+                        </div>
+                        
+                        {invoice.globalDiscount > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span>Descuento global ({invoice.globalDiscount}%):</span>
+                            <span>-{formatCurrency(discountAmount)}</span>
+                          </div>
+                        )}
+                        
+                        <div className="flex justify-between text-sm">
+                          <span>IVA:</span>
+                          <span>{formatCurrency(taxAmount)}</span>
+                        </div>
+                        
+                        {invoice.applyEquivalenceSurcharge && (
+                          <div className="flex justify-between text-sm">
+                            <span>Recargo equivalencia:</span>
+                            <span>{formatCurrency(equivalenceSurchargeAmount)}</span>
+                          </div>
+                        )}
+                        
+                        {invoice.applyWithholdingTax && (
+                          <div className="flex justify-between text-sm">
+                            <span>Retención ({invoice.withholdingTaxRate}%):</span>
+                            <span>-{formatCurrency(withholdingTaxAmount)}</span>
+                          </div>
+                        )}
+                        
+                        <div className="pt-1 mt-1 border-t flex justify-between font-bold">
+                          <span>TOTAL:</span>
+                          <span>{formatCurrency(total)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
+    </div>
+  );
+}
