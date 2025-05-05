@@ -1,8 +1,9 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "./layouts/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import InvoiceForm from "./pages/InvoiceForm";
@@ -12,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import { InvoiceProvider } from "./contexts/InvoiceContext";
 import ClientList from "./pages/ClientList";
 
+// Create a single query client instance
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -22,7 +24,7 @@ const App = () => (
       <InvoiceProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<AppLayout />}>
+            <Route element={<AppLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="/facturas" element={<InvoiceList />} />
               <Route path="/facturas/nueva" element={<InvoiceForm />} />

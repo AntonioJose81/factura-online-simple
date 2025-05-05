@@ -2,7 +2,7 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 
 export const AppLayout = () => {
   const isMobile = useIsMobile();
@@ -37,7 +37,9 @@ export const AppLayout = () => {
           <h1 className="text-xl font-bold text-invoice-dark">FacturaFácil</h1>
         </div>
         <main className="flex-1 p-4 sm:p-6 md:p-8">
-          <Outlet />
+          <Suspense fallback={<div>Cargando...</div>}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>
