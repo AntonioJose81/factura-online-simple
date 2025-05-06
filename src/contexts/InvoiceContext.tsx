@@ -1,13 +1,22 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { Company, Customer, Invoice } from '@/types';
+import { Company, Customer, Invoice, AppearanceSettings } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { exportToJson, exportToXml } from '@/utils/exporters';
+
+// Default appearance settings
+const defaultAppearance: AppearanceSettings = {
+  primaryColor: "#3b82f6", // Blue color
+  accentColor: "#6366f1", // Indigo color
+  fontFamily: "inter",
+  showLogo: true,
+  colorScheme: "default",
+};
 
 type InvoiceContextType = {
   companies: Company[];
   customers: Customer[];
   invoices: Invoice[];
+  appearance: AppearanceSettings;
   addCompany: (company: Omit<Company, 'id'>) => Company;
   updateCompany: (company: Company) => void;
   deleteCompany: (id: string) => void;
@@ -22,6 +31,7 @@ type InvoiceContextType = {
   deleteInvoice: (id: string) => void;
   exportData: () => string;
   importData: (jsonData: string) => boolean;
+  updateAppearance: (settings: AppearanceSettings) => void;
 };
 
 const InvoiceContext = createContext<InvoiceContextType | undefined>(undefined);
@@ -30,6 +40,7 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [appearance, setAppearance] = useState<AppearanceSettings>(defaultAppearance);
 
   useEffect(() => {
     const loadInitialData = () => {
@@ -46,6 +57,12 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
       const storedInvoices = localStorage.getItem('invoices');
       if (storedInvoices) {
         setInvoices(JSON.parse(storedInvoices));
+      }
+      
+      // Load appearance settings
+      const storedAppearance = localStorage.getItem('appearance');
+      if (storedAppearance) {
+        setAppearance(JSON.parse(storedAppearance));
       }
     };
 
@@ -195,10 +212,17 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Add the missing updateAppearance function
+  const updateAppearance = (settings: AppearanceSettings) => {
+    setAppearance(settings);
+    localStorage.setItem('appearance', JSON.stringify(settings));
+  };
+
   const value = {
     companies,
     customers,
     invoices,
+    appearance,
     addCompany,
     updateCompany,
     deleteCompany,
@@ -212,7 +236,8 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
     getCustomer,
     deleteInvoice,
     exportData,
-    importData
+    importData,
+    updateAppearance
   };
 
   return (
