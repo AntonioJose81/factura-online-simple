@@ -9,7 +9,215 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      companies: {
+        Row: {
+          address: string
+          city: string
+          country: string
+          email: string | null
+          id: string
+          logo: string | null
+          name: string
+          phone: string | null
+          postal_code: string
+          province: string
+          tax_id: string
+          user_id: string | null
+        }
+        Insert: {
+          address: string
+          city: string
+          country: string
+          email?: string | null
+          id: string
+          logo?: string | null
+          name: string
+          phone?: string | null
+          postal_code: string
+          province: string
+          tax_id: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string
+          city?: string
+          country?: string
+          email?: string | null
+          id?: string
+          logo?: string | null
+          name?: string
+          phone?: string | null
+          postal_code?: string
+          province?: string
+          tax_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      customers: {
+        Row: {
+          address: string
+          city: string
+          country: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          postal_code: string
+          province: string
+          tax_id: string
+          user_id: string | null
+        }
+        Insert: {
+          address: string
+          city: string
+          country: string
+          email?: string | null
+          id: string
+          name: string
+          phone?: string | null
+          postal_code: string
+          province: string
+          tax_id: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string
+          city?: string
+          country?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          postal_code?: string
+          province?: string
+          tax_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      invoice_items: {
+        Row: {
+          description: string
+          discount: number
+          id: string
+          invoice_id: string
+          price: number
+          quantity: number
+          tax: number
+        }
+        Insert: {
+          description: string
+          discount: number
+          id: string
+          invoice_id: string
+          price: number
+          quantity: number
+          tax: number
+        }
+        Update: {
+          description?: string
+          discount?: number
+          id?: string
+          invoice_id?: string
+          price?: number
+          quantity?: number
+          tax?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          apply_equivalence_surcharge: boolean | null
+          apply_withholding_tax: boolean | null
+          company_id: string | null
+          customer_id: string | null
+          date: string
+          due_date: string | null
+          global_discount: number | null
+          id: string
+          notes: string | null
+          number: string
+          status: string
+          user_id: string | null
+          withholding_tax_rate: number | null
+        }
+        Insert: {
+          apply_equivalence_surcharge?: boolean | null
+          apply_withholding_tax?: boolean | null
+          company_id?: string | null
+          customer_id?: string | null
+          date: string
+          due_date?: string | null
+          global_discount?: number | null
+          id: string
+          notes?: string | null
+          number: string
+          status: string
+          user_id?: string | null
+          withholding_tax_rate?: number | null
+        }
+        Update: {
+          apply_equivalence_surcharge?: boolean | null
+          apply_withholding_tax?: boolean | null
+          company_id?: string | null
+          customer_id?: string | null
+          date?: string
+          due_date?: string | null
+          global_discount?: number | null
+          id?: string
+          notes?: string | null
+          number?: string
+          status?: string
+          user_id?: string | null
+          withholding_tax_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
