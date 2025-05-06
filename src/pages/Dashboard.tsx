@@ -177,10 +177,23 @@ export default function Dashboard() {
                           interval={0}
                         />
                         <YAxis />
+                        <YAxis yAxisId="right" orientation="right" />
                         <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                         <Legend />
-                        <Line type="monotone" dataKey="amount" stroke="#8884d8" activeDot={{ r: 8 }} name="Importe" />
-                        <Line type="monotone" dataKey="count" stroke="#82ca9d" name="Facturas" yAxisId="right" />
+                        <Line 
+                          type="monotone" 
+                          dataKey="amount" 
+                          stroke="#8884d8" 
+                          activeDot={{ r: 8 }} 
+                          name="Importe"
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="count" 
+                          stroke="#82ca9d" 
+                          yAxisId="right" 
+                          name="Facturas" 
+                        />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
