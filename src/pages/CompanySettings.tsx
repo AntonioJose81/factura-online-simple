@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useInvoiceContext } from "@/contexts/InvoiceContext";
 import { Button } from "@/components/ui/button";
@@ -9,12 +8,51 @@ import { EmptyState } from "@/components/EmptyState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import type { Company } from "@/types";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
+import { Palette } from "lucide-react";
+import type { Company, AppearanceSettings } from "@/types";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { InvoiceAppearancePreview } from "@/components/InvoiceAppearancePreview";
+
+// Default appearance settings
+const defaultAppearance: AppearanceSettings = {
+  primaryColor: "#3b82f6", // Blue color
+  accentColor: "#6366f1", // Indigo color
+  fontFamily: "inter",
+  showLogo: true,
+  colorScheme: "default",
+};
 
 export default function CompanySettings() {
-  const { companies, addCompany, updateCompany, deleteCompany, exportData, importData } = useInvoiceContext();
+  const { companies, addCompany, updateCompany, deleteCompany, exportData, importData, appearance, updateAppearance } = useInvoiceContext();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [currentAppearance, setCurrentAppearance] = useState<AppearanceSettings>(
+    appearance || defaultAppearance
+  );
+  const [previewInvoice, setPreviewInvoice] = useState(false);
+
+  // Load appearance settings on mount
+  useEffect(() => {
+    if (appearance) {
+      setCurrentAppearance(appearance);
+    }
+  }, [appearance]);
+
+  // Handle appearance settings changes
+  const handleAppearanceChange = (field: keyof AppearanceSettings, value: any) => {
+    const updatedAppearance = { ...currentAppearance, [field]: value };
+    setCurrentAppearance(updatedAppearance);
+  };
+
+  // Save appearance settings
+  const saveAppearanceSettings = () => {
+    updateAppearance(currentAppearance);
+    toast({
+      title: "Apariencia actualizada",
+      description: "Los cambios han sido guardados correctamente."
+    });
+  };
 
   // Import/Export functionality
   const handleExport = () => {
@@ -129,16 +167,144 @@ export default function CompanySettings() {
           )}
         </TabsContent>
 
-        <TabsContent value="appearance" className="pt-4">
+        <TabsContent value="appearance" className="pt-4 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Apariencia de Facturas</CardTitle>
-              <CardDescription>Personaliza la apariencia de tus facturas</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5" />
+                Apariencia de Facturas
+              </CardTitle>
+              <CardDescription>
+                Personaliza el aspecto de tus facturas para adaptarlas a tu marca
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-500">
-                La personalización avanzada de plantillas estará disponible próximamente.
-              </p>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm">Esquema de colores</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="primaryColor">Color primario</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="color"
+                            id="primaryColor"
+                            value={currentAppearance.primaryColor}
+                            onChange={(e) => handleAppearanceChange('primaryColor', e.target.value)}
+                            className="w-12 h-10 p-1"
+                          />
+                          <Input
+                            type="text"
+                            value={currentAppearance.primaryColor}
+                            onChange={(e) => handleAppearanceChange('primaryColor', e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="accentColor">Color secundario</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="color"
+                            id="accentColor"
+                            value={currentAppearance.accentColor}
+                            onChange={(e) => handleAppearanceChange('accentColor', e.target.value)}
+                            className="w-12 h-10 p-1"
+                          />
+                          <Input
+                            type="text"
+                            value={currentAppearance.accentColor}
+                            onChange={(e) => handleAppearanceChange('accentColor', e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm">Estilo de factura</h3>
+                    <RadioGroup 
+                      defaultValue={currentAppearance.colorScheme}
+                      onValueChange={(value) => handleAppearanceChange('colorScheme', value)}
+                      className="flex flex-wrap gap-3"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="default" id="default" />
+                        <Label htmlFor="default">Clásico</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="modern" id="modern" />
+                        <Label htmlFor="modern">Moderno</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="minimal" id="minimal" />
+                        <Label htmlFor="minimal">Minimalista</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="bold" id="bold" />
+                        <Label htmlFor="bold">Destacado</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm">Tipografía</h3>
+                    <RadioGroup 
+                      defaultValue={currentAppearance.fontFamily}
+                      onValueChange={(value) => handleAppearanceChange('fontFamily', value)}
+                      className="flex flex-col gap-3"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="inter" id="inter" />
+                        <Label htmlFor="inter" className="font-['Inter']">Inter (Actual)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="poppins" id="poppins" />
+                        <Label htmlFor="poppins" className="font-['Poppins']">Poppins</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="roboto" id="roboto" />
+                        <Label htmlFor="roboto" className="font-['Roboto']">Roboto</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="georgia" id="georgia" />
+                        <Label htmlFor="georgia" className="font-['Georgia']">Georgia</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Switch
+                      id="showLogo"
+                      checked={currentAppearance.showLogo}
+                      onCheckedChange={(checked) => handleAppearanceChange('showLogo', checked)}
+                    />
+                    <Label htmlFor="showLogo">Mostrar logo en facturas</Label>
+                  </div>
+
+                  <div className="pt-4">
+                    <Button onClick={saveAppearanceSettings}>Guardar cambios</Button>
+                    <Button 
+                      variant="outline" 
+                      className="ml-2"
+                      onClick={() => setPreviewInvoice(!previewInvoice)}
+                    >
+                      {previewInvoice ? "Ocultar vista previa" : "Ver vista previa"}
+                    </Button>
+                  </div>
+                </div>
+
+                {previewInvoice && (
+                  <div className="border rounded-md p-4 bg-white">
+                    <h3 className="font-medium text-sm mb-3 text-gray-500">Vista previa</h3>
+                    <div className="overflow-auto max-h-[500px]">
+                      <InvoiceAppearancePreview appearance={currentAppearance} />
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

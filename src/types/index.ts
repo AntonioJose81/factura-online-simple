@@ -1,4 +1,3 @@
-
 export interface Company {
   id: string;
   name: string;
@@ -59,4 +58,12 @@ export interface InvoiceWithDetails extends Invoice {
   totalDiscount: number;
   totalWithholdingTax?: number;
   total: number;
+}
+
+export interface AppearanceSettings {
+  primaryColor: string;
+  accentColor: string;
+  fontFamily: 'inter' | 'poppins' | 'roboto' | 'georgia';
+  showLogo: boolean;
+  colorScheme: 'default' | 'modern' | 'minimal' | 'bold';
 }
