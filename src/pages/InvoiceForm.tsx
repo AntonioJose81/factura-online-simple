@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
@@ -214,26 +213,27 @@ export default function InvoiceForm() {
       return;
     }
 
-    const addedCustomer = addCustomer(newCustomer);
-    setInvoice({ ...invoice, customerId: addedCustomer.id });
-    setIsCustomerDialogOpen(false);
-    
-    // Reset new customer form
-    setNewCustomer({
-      name: "",
-      taxId: "",
-      address: "",
-      postalCode: "",
-      city: "",
-      province: "",
-      country: "España",
-      phone: "",
-      email: ""
-    });
-    
-    toast({
-      title: "Cliente añadido",
-      description: "El cliente ha sido añadido correctamente"
+    addCustomer(newCustomer).then(newCustomer => {
+      setInvoice({ ...invoice, customerId: newCustomer.id });
+      setIsCustomerDialogOpen(false);
+      
+      // Reset new customer form
+      setNewCustomer({
+        name: "",
+        taxId: "",
+        address: "",
+        postalCode: "",
+        city: "",
+        province: "",
+        country: "España",
+        phone: "",
+        email: ""
+      });
+      
+      toast({
+        title: "Cliente añadido",
+        description: "El cliente ha sido añadido correctamente"
+      });
     });
   };
 

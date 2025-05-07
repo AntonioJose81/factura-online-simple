@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { Company, Customer, Invoice, AppearanceSettings } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -165,6 +164,11 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
             discount: Number(item.discount)
           }));
           
+          // Aseguramos que el status sea uno de los valores permitidos
+          const status = ['draft', 'sent', 'paid', 'cancelled'].includes(invoice.status) 
+            ? invoice.status as "draft" | "sent" | "paid" | "cancelled" 
+            : "draft";
+          
           return {
             id: invoice.id,
             number: invoice.number,
@@ -174,7 +178,7 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
             customerId: invoice.customer_id,
             items,
             notes: invoice.notes,
-            status: invoice.status,
+            status: status,
             globalDiscount: invoice.global_discount ? Number(invoice.global_discount) : 0,
             applyEquivalenceSurcharge: invoice.apply_equivalence_surcharge || false,
             applyWithholdingTax: invoice.apply_withholding_tax || false,
