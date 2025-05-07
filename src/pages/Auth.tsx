@@ -8,11 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { user, signIn, signUp, signInWithGoogle } = useAuth();
   
   // Si el usuario ya está autenticado, redirigir al inicio
@@ -23,11 +26,13 @@ export default function Auth() {
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     
     try {
       const { error } = await signIn(email, password);
       
       if (error) {
+        setError(error.message);
         toast({
           title: "Error al iniciar sesión",
           description: error.message,
@@ -35,6 +40,7 @@ export default function Auth() {
         });
       }
     } catch (error: any) {
+      setError(error.message || "Ha ocurrido un error");
       toast({
         title: "Error al iniciar sesión",
         description: error.message || "Ha ocurrido un error",
@@ -48,11 +54,13 @@ export default function Auth() {
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     
     try {
       const { error } = await signUp(email, password);
       
       if (error) {
+        setError(error.message);
         toast({
           title: "Error al registrarse",
           description: error.message,
@@ -65,6 +73,7 @@ export default function Auth() {
         });
       }
     } catch (error: any) {
+      setError(error.message || "Ha ocurrido un error");
       toast({
         title: "Error al registrarse",
         description: error.message || "Ha ocurrido un error",
@@ -76,14 +85,19 @@ export default function Auth() {
   };
   
   const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError(null);
     try {
       await signInWithGoogle();
     } catch (error: any) {
+      setError(error.message || "Error al iniciar sesión con Google");
       toast({
         title: "Error al iniciar sesión con Google",
         description: error.message || "Ha ocurrido un error",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -103,6 +117,15 @@ export default function Auth() {
             </CardDescription>
           </CardHeader>
           
+          {error && (
+            <CardContent>
+              <Alert variant="destructive" className="mb-4">
+                <ExclamationTriangleIcon className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            </CardContent>
+          )}
+          
           <Tabs defaultValue="login">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
@@ -121,6 +144,7 @@ export default function Auth() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      disabled={loading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -137,6 +161,7 @@ export default function Auth() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      disabled={loading}
                     />
                   </div>
                 </CardContent>
@@ -158,6 +183,7 @@ export default function Auth() {
                     variant="outline" 
                     className="w-full"
                     onClick={handleGoogleSignIn}
+                    disabled={loading}
                   >
                     <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                       <path
@@ -195,6 +221,7 @@ export default function Auth() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      disabled={loading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -206,6 +233,8 @@ export default function Auth() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      disabled={loading}
+                      minLength={6}
                     />
                     <p className="text-xs text-gray-500">
                       La contraseña debe tener al menos 6 caracteres
@@ -230,6 +259,7 @@ export default function Auth() {
                     variant="outline" 
                     className="w-full"
                     onClick={handleGoogleSignIn}
+                    disabled={loading}
                   >
                     <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                       <path

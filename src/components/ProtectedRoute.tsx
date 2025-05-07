@@ -16,7 +16,7 @@ export function ProtectedRoute() {
   
   // Si no hay usuario autenticado, redirigir a la página de autenticación
   if (!user) {
-    return <Navigate to="/auth" />;
+    return <Navigate to="/auth" replace />;
   }
   
   // Si hay un usuario autenticado, renderizar la ruta protegida

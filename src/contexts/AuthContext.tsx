@@ -92,14 +92,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: `${window.location.origin}/auth`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
         }
       });
-    } catch (error) {
+      
+      if (error) {
+        console.error('Error al iniciar sesión con Google:', error);
+        toast({
+          title: "Error de autenticación",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+    } catch (error: any) {
       console.error('Error al iniciar sesión con Google:', error);
+      toast({
+        title: "Error de autenticación",
+        description: error.message || "Ha ocurrido un error durante la autenticación",
+        variant: "destructive"
+      });
       throw error;
     }
   };
